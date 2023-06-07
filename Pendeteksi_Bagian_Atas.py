@@ -1,10 +1,9 @@
 import cv2
 import numpy as np
 from paho.mqtt import client as mqtt_client
-import time
 import random
 from datetime import datetime
-import json
+
 
 #mqtt parameter
 broker = '146.190.106.65'
@@ -35,10 +34,7 @@ YELLOW = (0,255,255)
 RED = (0,0,255)
 GREEN = (21,71,52)
 
-# Contrast & Brightness
-alpha = 0.7
-beta = 10
-
+# Variables
 global kelas,conf,x,x_string
 kelas = 0
 conf = 0
@@ -48,10 +44,12 @@ b = []
 x = []
 y = []
 a = []
+d = 0
 C = 0
 F = 0
 W = 0
 T = 0
+
 def count_strings(array):
 	counts = {}
 	for element in array:
@@ -136,6 +134,8 @@ def post_process(input_image, outputs):
 		kelas = classes[class_ids[i]]
 		conf = confidences[i]
 		x.append(kelas)
+		if len(x) == 0:
+			print("Melakukan deteksi pada bagian atas")
 		y.append(conf)
 	return input_image
 
@@ -159,58 +159,43 @@ def publish(client,msg):
 	result = client.publish(topic2, send)
 	status = result[0]
 	if status == 0:
-		print(f"Send '{send}' to topic '{topic2}' at {current_time}")
+		print(f"Mengirim '{send}' ke topic '{topic2}' pada waktu {current_time}")
 	else:
 		print(f"failed to send to topic'{topic2}'")
 	
-def subscribe(client: mqtt_client): #jetson
+def subscribe(client: mqtt_client): #Receive from Pendeteksi Bagian Samping 
 	def on_message(client, userdata, msg):
 		global x,b,a, data,C
-		# client.unsubscribe(topic1)
-		print(f"Received `{msg.payload.decode('utf-8')}` from `{msg.topic}` topic")
 		b = msg.payload.decode('utf-8')
 		if b == 'FlawlessSamping':
 			a.append(b)
 		elif b == 'WrinkledSamping':
 			a.append(b)
 		elif b == 'TearSamping':
-			a.append(b)
-		
+			a.append(b)	
 		elif b == 'true':
 			data.append(b)
-			# a = []
-			# x = []
-			# data == 'true'
 		elif b == 'false':
 			data = []
 			C = 0
-		print(b)
-		# print(a)
-		# a.append(b)
 		receivedArray = b.split(',')
-	# print(b)
 	client.subscribe(topic)
 	client.on_message = on_message
 
-def subscribe1(client: mqtt_client): #recieve eric
+def subscribe1(client: mqtt_client): #recieve from photoelectric sensor
 	def on_message(client, userdata, msg):
 		global x, data, a
-		print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
 		b = msg.payload.decode()
-		# print(data)
 		if a == []:
 			client.unsubscribe(topic)
-		# print(data)
 	client.subscribe(topic1)
 	client.on_message = on_message
 
 def unsubscribe(mqtt_client):
 	client.unsubscribe(topic1)
-	# client.on_message=on_message
 
 def unsubscribe1(client: mqtt_client):
 	client.unsubscribe(topic)
-	# client.on_message=on_message
 
 def run():
 	client = connect_mqtt()
@@ -218,6 +203,7 @@ def run():
 
 def true11():
 	global a,x,hitung,maksimal,paling,data
+	print("Terdeteksi Flawless Atas dan Flawless Samping")
 	publish(client, "true, 11")			#Flawless Atas Flawless Samping
 	unsubscribe(mqtt_client)
 	x = []
@@ -227,9 +213,10 @@ def true11():
 	C = 0
 	paling = []
 	data = []
-	
+	d=0
 def false12():
 	global a,x,hitung,maksimal,paling,data
+	print("Terdeteksi Flawless Atas dan Wrinkled Samping")
 	publish(client, "false, 12")		#Flawless Atas Kerut Samping
 	unsubscribe(mqtt_client)
 	x = []
@@ -239,9 +226,10 @@ def false12():
 	maksimal = 0
 	paling = []
 	data = []
-
+	d=0
 def false13():
 	global a,x,hitung,maksimal,paling,data
+	print("Terdeteksi Flawless Atas dan Tear Samping")
 	publish(client, "false, 13")		#Flawless Atas sobek Samping
 	unsubscribe(mqtt_client)
 	x = []
@@ -251,9 +239,10 @@ def false13():
 	maksimal = 0
 	paling = []
 	data = []
-
+	d=0
 def false14():
 	global a,x,hitung,maksimal,paling,data
+	print("Terdeteksi Wrinkled Atas dan Flawless Samping")
 	publish(client, "false, 14") 		#Kerut atas Tanpa cacat samping
 	unsubscribe(mqtt_client)
 	x = []
@@ -263,9 +252,10 @@ def false14():
 	maksimal = 0
 	paling = []
 	data = []
-
+	d=0
 def false15():
 	global a,x,hitung,maksimal,paling,data
+	print("Terdeteksi Wrinkled Atas dan Wrinkled Samping")
 	publish(client, "false, 15")		#Kerut atas Kerut Samping
 	unsubscribe(mqtt_client)
 	x = []
@@ -275,9 +265,10 @@ def false15():
 	maksimal = 0
 	paling = []
 	data = []
-
+	d=0
 def false16():
 	global a,x,hitung,maksimal,paling,data
+	print("Terdeteksi Wrinkled Atas dan Tear Samping")
 	publish(client, "false, 16")		#Kerut atas Robek Samping
 	unsubscribe(mqtt_client)
 	x = []
@@ -287,9 +278,10 @@ def false16():
 	maksimal = 0
 	paling = []
 	data = []
-
+	d=0
 def false17():
 	global a,x,hitung,maksimal,paling,data
+	print("Terdeteksi Shifted Atas dan Flawless Samping")
 	publish(client, "false, 17")		#Label tidak rapih atas Tanpa cacat samping
 	unsubscribe(mqtt_client)
 	x = []
@@ -299,9 +291,10 @@ def false17():
 	maksimal = 0
 	paling = []
 	data = []
-
+	d=0
 def false18():
 	global a,x,hitung,maksimal,paling,data
+	print("Terdeteksi Shifted Atas dan Wrinkled Samping")
 	publish(client, "false, 18")		#Label tidak rapih atas Kerut Samping
 	unsubscribe(mqtt_client)
 	x = []
@@ -311,9 +304,10 @@ def false18():
 	maksimal = 0
 	paling = []
 	data = []
-
+	d=0
 def false19():
 	global a,x,hitung,maksimal,paling,data
+	print("Terdeteksi Shifted Atas dan Tear Samping")
 	publish(client, "false, 19")		#Label tidak rapih atas Robek Samping
 	unsubscribe(mqtt_client)
 	x = []
@@ -323,9 +317,10 @@ def false19():
 	maksimal = 0
 	paling = []
 	data = []
-
+	d=0
 def false20():
 	global a,x,hitung,maksimal,paling,data
+	print("Terdeteksi Tear Atas dan Flawless Samping")
 	publish(client, "false, 20")		#Robek atas Tanpa cacat Samping
 	unsubscribe(mqtt_client)
 	x = []
@@ -335,9 +330,10 @@ def false20():
 	maksimal = 0
 	paling = []
 	data = []
-
+	d=0
 def false21():
 	global a,x,hitung,maksimal,paling,data
+	print("Terdeteksi Tear Atas dan Wrinkled Samping")
 	publish(client, "false, 21")		#Robek atas Kerut Samping
 	unsubscribe(mqtt_client)
 	x = []
@@ -347,9 +343,10 @@ def false21():
 	maksimal = 0
 	paling = []
 	data = []
-
+	d=0
 def false22():
 	global a,x,hitung,maksimal,paling,data
+	print("Terdeteksi Tear Atas dan Tear Samping")
 	publish(client, "false, 22")		#Robek atas Robek samping
 	unsubscribe(mqtt_client)
 	x = []
@@ -359,10 +356,10 @@ def false22():
 	maksimal = 0
 	paling = []
 	data = []
-
+	d=0
 def salah():
 	global a,x,hitung,maksimal,paling,data, C
-	# print("Menyalakan Alarm")
+	print("Tidak terdeteksi")
 	unsubscribe(mqtt_client)
 	x = []
 	a =[]
@@ -371,19 +368,17 @@ def salah():
 	maksimal = 0
 	paling = []
 	data = []
-
+	d=0
 
 if __name__ == '__main__':
 	client = connect_mqtt()
 	client.loop_start()
 	subscribe(client)
 	subscribe1(client)
-	# classesFile = "data/coco.names"
 	classesFile = "data/obj.names"
 	classes = None
 	with open(classesFile, 'rt') as f:
 		classes = f.read().rstrip('\n').split('\n')
-
 	# Load image.
 	# camSet='nvarguscamerasrc !  video/x-raw(memory:NVMM), width=3264, height=2464, format=NV12, framerate=21/1 ! nvvidconv flip-method='+str(flip)+' ! video/x-raw, width='+str(dispW)+', height='+str(dispH)+', format=BGRx ! videoconvert ! video/x-raw, format=BGR ! appsink'
 	# cap = cv2.VideoCapture(camSet)
@@ -393,68 +388,38 @@ if __name__ == '__main__':
 	net = cv2.dnn.readNet(model='top_best.weights', config='cfg/Tissue/top.cfg')
 	net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
 	net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
- 
+	if d == 0:
+		print("Detecting...")
+	d=d+1
 	# Process image.
-	while True:
+	while True:	
 		subscribe(client)
 		subscribe1(client)
 		ret, frame = cap.read()
-		# cv2.resize(frame, (1280,720))
-		# cap.set(cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 1280)
-		# cap.set(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 720)
-		# frame1 = cv2.convertScaleAbs(frame, alpha=alpha, beta=beta)
 		if len(a) == 0:
 			subscribe(client)
 		if len(a) > 0:
-			# unsubscribe(mqtt_client)
-			# subscribe(client)
 			hitung = count_strings(a)
 			maksimal=max(hitung.values())
 			paling = [element for element, count in hitung.items() if count == maksimal]		#===================== Buat Jetson SIDE
-			# print(a)
 			F= a.count('FlawlessSamping')
 			W= a.count('WrinkledSamping')
-			T= a.count('TearSamping')
-			# subscribe1(client)
-			# unsubscribe1(client)
-			print(hitung)
-			print(paling)
-			# if len(a) > 0:
-			# 	subscribe1(client)
-			# 	print(data)
-				# unsubscribe(mqtt_client)
-
+			T= a.count('TearSamping')		
 		
-		
-		# print(b)
 		if len(x) > 0:
 			subscribe(client)
 			C = data.count('true')
 			counts = count_strings(x)
 			max_count =max(counts.values())
 			most_common = [element for element, count in counts.items() if count == max_count] #====================== Buat Jetson TOP
-		
-			print(counts)
-			print(most_common)
 			Flawless= x.count('Flawless')
 			Wrinkled= x.count('Wrinkled')
 			Shifted = x.count('Shifted')
 			Tear = x.count("Tear")
-			# print(Wrinkled)
-			# print(Shifted)
-			# print(Tear)
-			# print(Flawless)
-			print("most : {}".format(most_common))
-			print(data)
-			print(paling)
 			if C >0:
-				# time.sleep(0.2)
-				# subscribe1(client)
-				print("truee")
 				if a == []:
 					salah()
 				elif most_common == ['Flawless']:
-					print("flawwww")
 					if Wrinkled > 0:
 						subscribe1(client)
 						print(paling)
@@ -467,7 +432,6 @@ if __name__ == '__main__':
 								false15()
 							else:
 								false14()
-
 						elif paling == ['WrinkledSamping']:		#Kerut Atas Kerut Samping
 							false15()
 						elif paling == ['TearSamping']:			#Kerut Atas Sobek Samping
@@ -477,7 +441,8 @@ if __name__ == '__main__':
 								false15()
 							if F == T:
 								false16()
-								
+							elif F == W == T:
+								false16()
 						elif W > 0:
 							if W == T:
 								false16()
@@ -490,10 +455,8 @@ if __name__ == '__main__':
 								false16()
 						elif a == []:
 							salah()
-
 					elif Shifted > 0:
 						subscribe1(client)
-						print(b)
 						if paling == ['FlawlessSamping']:		#Label Tidak Rapi Atas Tanpa Cacat Samping
 							if T > W:
 								false19()
@@ -503,34 +466,31 @@ if __name__ == '__main__':
 								false18()
 							else:
 								false17()
-
 						elif paling == ['WrinkledSamping']:		#Label Tidak Rapi Atas Kerut Samping
 							false18()
 						elif paling == ['TearSamping']:			#Label Tidak Rapi Atas Sobek Samping
 							false19()
-						# elif F == W == T:
-						# 	false19()
 						elif F > 0:
 							if F == W:
 								false18()
-							if F == T:
+							elif F == T:
+								false19()
+							elif F == W == T:
 								false19()
 						elif W > 0:
 							if W == T:
 								false19()
-							if W == F:
+							elif W == F:
 								false18()
 						elif T > 0:
 							if T == F:
 								false19()
-							if T == W:
+							elif T == W:
 								false19()
 						elif a == []:
 							salah()
-							
 					elif Tear > 0:
 						subscribe1(client)
-						print(b)
 						if paling == ['FlawlessSamping']:		#Robek Atas Tanpa Cacat Samping
 							
 							if T > W:
@@ -545,29 +505,27 @@ if __name__ == '__main__':
 							false21()
 						elif paling == ['TearSamping']:			#Robek Atas Robek Samping
 							false22()
-						# elif F == W == T:
-						# 	false22()
 						elif F > 0:
 							if F == W:
 								false21()
-							if F == T:
+							elif F == T:
+								false22()
+							elif F == W == T:
 								false22()
 						elif W > 0:
 							if W == T:
 								false22()
-							if W == F:
+							elif W == F:
 								false21()
 						elif T > 0:
 							if T == F:
 								false22()
-							if T == W:
+							elif T == W:
 								false22()
 						elif a == []:
 							salah()
-					
 					else:
 						subscribe1(client)
-						print(b)
 						if paling == ['FlawlessSamping']:		#Tanpa cacat atas Tanpa Cacat Samping
 							if T > W:
 								false13()
@@ -581,12 +539,12 @@ if __name__ == '__main__':
 							false12()
 						elif paling == ['TearSamping']:			#Tanpa cacat atas sobek samping
 							false13()
-						# elif F == W == T:
-						# 	false13()
 						elif F > 0:
 							if F == W:
 								false12()
-							if F == T:
+							elif F == T:
+								false13()
+							elif F == W == T:
 								false13()
 						elif W > 0:
 							if W == T:
@@ -600,10 +558,8 @@ if __name__ == '__main__':
 								false13()
 						elif a == []:
 							salah()
-							
 				elif most_common == ['Wrinkled']:
 					subscribe1(client)
-					print(b)
 					if paling == ['FlawlessSamping']:		#Kerut atas Tanpa cacat samping
 						if T > W:
 							false16()
@@ -613,17 +569,16 @@ if __name__ == '__main__':
 							false15()
 						else:
 							false14()
-
 					elif paling == ['WrinkledSamping']:		#Kerut atas Kerut Samping
 						false15()
 					elif paling == ['TearSamping']:			#Kerut atas Robek Samping
 						false16()
-					# elif F == W == T:
-					# 		false16()
 					elif F > 0:
 						if F == W:
 							false15()
 						elif F == T:
+							false16()
+						elif F == W == T:
 							false16()
 					elif W > 0:
 						if W == T:
@@ -637,10 +592,8 @@ if __name__ == '__main__':
 							false16()
 					elif a == []:
 						salah()
-
 				elif most_common == ['Shifted']:
 					subscribe1(client)
-					print(b)
 					if paling == ['FlawlessSamping']:		#Label tidak rapih atas Tanpa cacat samping
 						if T > W:
 							false18()
@@ -650,33 +603,31 @@ if __name__ == '__main__':
 							false19()
 						else:
 							false17()
-
 					elif paling == ['WrinkledSamping']:		#Label tidak rapih atas Kerut Samping
 						false18()
 					elif paling == ['TearSamping']:			#Label tidak rapih atas Robek Samping
 						false19()
-					# elif F == W == T:
-					# 		false19()
 					elif F > 0:
 						if F == W:
 							false18()
-						if F == T:
+						elif F == T:
+							false19()
+						elif F == W == T:
 							false19()
 					elif W > 0:
 						if W == T:
 							false19()
-						if W == F:
+						elif W == F:
 							false18()
 					elif T > 0:
 						if T == F:
 							false19()
-						if T == W:
+						elif T == W:
 							false19()
 					elif a == []:
 						salah()
 				elif most_common == ['Tear']:
 					subscribe1(client)
-					print(b)
 					if paling == ['FlawlessSamping']:		#Robek atas Tanpa cacat Samping
 						if T > W:
 							false22()
@@ -686,17 +637,16 @@ if __name__ == '__main__':
 							false21()
 						else:
 							false20()
-
 					elif paling == ['WrinkledSamping']:		#Robek atas Kerut Samping
 						false21()
 					elif paling == ['TearSamping']:			#Robek atas Robek samping
 						false22()
-					# elif F == W == T:
-					# 		false22()
 					elif F > 0:
 						if F == W:
 							false21()
 						elif F == T:
+							false22()
+						elif F == W == T:
 							false22()
 					elif W > 0:
 						if W == T:
@@ -721,17 +671,16 @@ if __name__ == '__main__':
 							false21()
 						else:
 							false20()
-
 					elif paling == ['WrinkledSamping']:		#Robek atas Kerut Samping
 						false21()
 					elif paling == ['TearSamping']:			#Robek atas Robek samping
 						false22()
-					# elif F == W == T:
-					# 		false22()
 					elif F > 0:
 						if F == W:
 							false21()
 						elif F == T:
+							false22()
+						elif F == W == T:
 							false22()
 					elif W > 0:
 						if W == T:
@@ -756,17 +705,16 @@ if __name__ == '__main__':
 							false21()
 						else:
 							false20()
-
 					elif paling == ['WrinkledSamping']:		#Robek atas Kerut Samping
 						false21()
 					elif paling == ['TearSamping']:			#Robek atas Robek samping
 						false22()
-					# elif F == W == T:
-					# 		false22()
 					elif F > 0:
 						if F == W:
 							false21()
 						elif F == T:
+							false22()
+						elif F == W == T:
 							false22()
 					elif W > 0:
 						if W == T:
@@ -791,17 +739,16 @@ if __name__ == '__main__':
 							false15()
 						else:
 							false14()
-
 					elif paling == ['WrinkledSamping']:		#Kerut atas Kerut Samping
 						false15()
 					elif paling == ['TearSamping']:			#Kerut atas Robek Samping
 						false16()
-					# elif F == W == T:
-					# 		false16()
 					elif F > 0:
 						if F == W:
 							false15()
 						elif F == T:
+							false16()
+						elif F == W == T:
 							false16()
 					elif W > 0:
 						if W == T:
@@ -826,17 +773,16 @@ if __name__ == '__main__':
 							false21()
 						else:
 							false20()
-
 					elif paling == ['WrinkledSamping']:		#Robek atas Kerut Samping
 						false21()
 					elif paling == ['TearSamping']:			#Robek atas Robek samping
 						false22()
-					# elif F == W == T:
-					# 		false22()
 					elif F > 0:
 						if F == W:
 							false21()
 						elif F == T:
+							false22()
+						elif F == W == T:
 							false22()
 					elif W > 0:
 						if W == T:
@@ -861,17 +807,16 @@ if __name__ == '__main__':
 							false21()
 						else:
 							false20()
-
 					elif paling == ['WrinkledSamping']:		#Robek atas Kerut Samping
 						false21()
 					elif paling == ['TearSamping']:			#Robek atas Robek samping
 						false22()
-					# elif F == W == T:
-					# 		false22()
 					elif F > 0:
 						if F == W:
 							false21()
 						elif F == T:
+							false22()
+						elif F == W == T:
 							false22()
 					elif W > 0:
 						if W == T:
@@ -896,17 +841,16 @@ if __name__ == '__main__':
 							false15()
 						else:
 							false14()
-							
 					elif paling == ['WrinkledSamping']:		#Kerut atas Kerut Samping
 						false15()
 					elif paling == ['TearSamping']:			#Kerut atas Robek Samping
 						false16()
-					# elif F == W == T:
-					# 		false16()
 					elif F > 0:
 						if F == W:
 							false15()
 						elif F == T:
+							false16()
+						elif F == W == T:
 							false16()
 					elif W > 0:
 						if W == T:
@@ -931,17 +875,16 @@ if __name__ == '__main__':
 							false15()
 						else:
 							false14()
-
 					elif paling == ['WrinkledSamping']:		#Kerut atas Kerut Samping
 						false15()
 					elif paling == ['TearSamping']:			#Kerut atas Robek Samping
 						false16()
-					# elif F == W == T:
-					# 		false16()
 					elif F > 0:
 						if F == W:
 							false15()
 						elif F == T:
+							false16()
+						elif F == W == T:
 							false16()
 					elif W > 0:
 						if W == T:
@@ -966,17 +909,16 @@ if __name__ == '__main__':
 							false15()
 						else:
 							false14()
-
 					elif paling == ['WrinkledSamping']:		#Kerut atas Kerut Samping
 						false15()
 					elif paling == ['TearSamping']:			#Kerut atas Robek Samping
 						false16()
-					# elif F == W == T:
-					# 		false16()
 					elif F > 0:
 						if F == W:
 							false15()
 						elif F == T:
+							false16()
+						elif F == W == T:
 							false16()
 					elif W > 0:
 						if W == T:
@@ -1001,17 +943,16 @@ if __name__ == '__main__':
 							false21()
 						else:
 							false20()
-
 					elif paling == ['WrinkledSamping']:		#Robek atas Kerut Samping
 						false21()
 					elif paling == ['TearSamping']:			#Robek atas Robek samping
 						false22()
-					# elif F == W == T:
-					# 		false22()
 					elif F > 0:
 						if F == W:
 							false21()
 						elif F == T:
+							false22()
+						elif F == W == T:
 							false22()
 					elif W > 0:
 						if W == T:
@@ -1028,18 +969,12 @@ if __name__ == '__main__':
 				elif len(a) == 0:
 					salah()
 				elif a == [] :
-					print('halo')
 					if b == 'true':
 						salah()
 						x = []
 				else:
 					salah()
-				# else:
-				# 	x = []
-				# 	b =[]
 			elif a == [] :
-				print('halo')
-				print(b)
 				if b == 'true':
 					salah()
 					x = []
@@ -1047,15 +982,12 @@ if __name__ == '__main__':
 					salah()
 		elif data == 'true':
 			salah()
-
 		detections = pre_process(frame, net)
 		img = post_process(frame.copy(), detections)
-		
 		# Put efficiency information. The function getPerfProfile returns the overall time for inference(t) and the timings for each of the layers(in layersTimes)
 		t, _ = net.getPerfProfile()
 		label = 'Inference time: %.2f ms' % (t * 1000.0 / cv2.getTickFrequency())
 		cv2.putText(img, label, (20, 40), FONT_FACE, FONT_SCALE, GREEN, THICKNESS, cv2.LINE_AA)
-		#img = cv2.resize(img, (1280,720))
 		cv2.imshow('Output', img)	
 		if cv2.waitKey(1) & 0xFF == ord('q'):	
 			break
