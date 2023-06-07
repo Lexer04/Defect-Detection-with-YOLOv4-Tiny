@@ -1,10 +1,8 @@
 import cv2
 import numpy as np
 from paho.mqtt import client as mqtt_client
-import time
 import random
 from datetime import datetime
-import json
 
 #mqtt parameter
 broker = '146.190.106.65'
@@ -19,9 +17,9 @@ password = 'fiHyn{odOmlap3@sorting'
 # Constants.
 INPUT_WIDTH = 416
 INPUT_HEIGHT = 416
-SCORE_THRESHOLD = 0.5
+SCORE_THRESHOLD = 0.7
 NMS_THRESHOLD = 0.7
-CONFIDENCE_THRESHOLD = 0.65
+CONFIDENCE_THRESHOLD = 0.9
 
 # Text parameters.
 FONT_FACE = cv2.FONT_HERSHEY_SIMPLEX
@@ -34,10 +32,7 @@ BLUE   = (255,178,50)
 YELLOW = (0,255,255)
 RED = (0,0,255)
 
-# Contrast & Brightness
-alpha = 0.7
-beta = 10
-
+#Variable
 global kelas,conf,x,x_string
 kelas = 0
 conf = 0
@@ -45,6 +40,9 @@ data = 0
 x = []
 y = []
 c = 0
+Wrinkled = 0
+Shifted = 0
+Tear = 0
 
 def count_strings(array):
 	counts = {}
@@ -147,35 +145,18 @@ def connect_mqtt():
 	return client
 
 def publish(client,msg):
-	# x_string = json.dumps(kelas)
-	# now = datetime.now()
-	# current_time = now.strftime("%H:%M:%S")
-	# date_time = now.strftime("%m/%d/%Y, %H:%M:%S: ")
 	send = str(msg)
 	result = client.publish(topic, send)
 	status = result[0]
 	if status == 0:
-		print(f"send '{send}' to topic '{topic}'")
-	
-def subscribe(client: mqtt_client): #jetson
-	def on_message(client, userdata, msg):
-		global x
-		print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
-		b = msg.payload.decode()
-		x.append(b)
-		receivedArray = b.split(',')
-	client.subscribe(topic)
-	client.on_message = on_message
+		print(f"Mengirim '{send}' ke topic '{topic}'")
 
-def subscribe1(client: mqtt_client): #recieve eric
+def subscribe1(client: mqtt_client): #Photoelectric Sensor
 	def on_message(client, userdata, msg):
 		global x, data
-		print(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
 		data = msg.payload.decode()
-		print(data)
 	client.subscribe(topic1)
 	client.on_message = on_message
-
 
 def run():
 	client = connect_mqtt()
@@ -184,29 +165,28 @@ def run():
 if __name__ == '__main__':
 	client = connect_mqtt()
 	client.loop_start()
-	# classesFile = "data/coco.names"
 	classesFile = "data/obj.names"
 	classes = None
 	with open(classesFile, 'rt') as f:
 		classes = f.read().rstrip('\n').split('\n')
 
 	# Load image.
+	# camSet='nvarguscamerasrc !  video/x-raw(memory:NVMM), width=3264, height=2464, format=NV12, framerate=21/1 ! nvvidconv flip-method='+str(flip)+' ! video/x-raw, width='+str(dispW)+', height='+str(dispH)+', format=BGRx ! videoconvert ! video/x-raw, format=BGR ! appsink'
+	# cap = cv2.VideoCapture(camSet)
 	cap = cv2.VideoCapture(0)
 	cap.set(3,1280)
 	cap.set(4,720)
-	net = cv2.dnn.readNet(model='side_best.weights', config='cfg/Tissue/side.cfg')
+	net = cv2.dnn.readNet(model='side_best_new.weights', config='cfg/Tissue/side.cfg')
 	net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
 	net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
  
 	# Process image.
 	while True:
-		# subscribe(client)
 		subscribe1(client)
 		ret, frame = cap.read()
-		# frame1 = cv2.convertScaleAbs(frame, alpha=alpha, beta=beta)
-		detections = pre_process(frame, net)
-		img = post_process(frame.copy(), detections)
-
+		frame_flip = cv2.flip(frame,1)
+		detections = pre_process(frame_flip, net)
+		img = post_process(frame_flip.copy(), detections)
 		# Put efficiency information. The function getPerfProfile returns the overall time for inference(t) and the timings for each of the layers(in layersTimes)
 		t, _ = net.getPerfProfile()
 		label = 'Inference time: %.2f ms' % (t * 1000.0 / cv2.getTickFrequency())
@@ -214,116 +194,82 @@ if __name__ == '__main__':
 		if len(x) > 0:
 			counts = count_strings(x)
 			count2 = len(x)
-			print(count2)
 			max_count =max(counts.values())
 			most_common = [element for element, count in counts.items() if count == max_count]
 			print(counts)
-			print(most_common)
 			Wrinkled= x.count('Wrinkled')
 			Shifted = x.count('Shifted')
 			Tear = x.count("Tear")
 			Flawless = x.count("Flawless")
-			print(c)
 			if c == 0 and int(count2) > 0:
 				if most_common == ['Flawless']:
 					if Wrinkled < 0:
-						publish(client, "WrinkledSamping")
-						# x =[]
-					elif Shifted < 0:
-						publish(client, "false, 2")
-						# x =[]
+						publish(client, "WrinkledSamping")					
 					elif Tear < 0:
 						publish(client, "TearSamping")
-						# x =[]
 					else:
 						publish(client, "FlawlessSamping")
-						# x = []
 				elif most_common == ['Wrinkled']:
 					publish(client, 'WrinkledSamping')
-					print("Sent to PLC as Wrinkled")
-					# x =[]
-				elif most_common == ['Shifted']:
-					publish(client, 'false, 2')
-					print("Sent to PLC as Shifted")
-					# x =[]
 				elif most_common == ['Tear']:
 					publish(client, 'TearSamping')
-					print("Sent to PLC as Tear")
-					# x =[]
-				elif most_common == ['person']:
-					publish(client, "PersonSamping")
-					print("Sent to PLC as person")
-					# x =[]
+				elif Flawless == Wrinkled == Tear:
+					publish(client, 'TearSamping')
+				elif Flawless > 0:
+					if Flawless == Wrinkled:
+						publish(client, 'WrinkledSamping')
+					elif Flawless == Tear:
+						publish(client, 'TearSamping')
+				elif Wrinkled > 0:
+					if Wrinkled == Tear:
+						publish(client, 'TearSamping')
+					elif Wrinkled == Flawless:
+						publish(client, 'WrinkledSamping')
+				elif Tear > 0:
+					if Tear == Flawless:
+						publish(client, 'TearSamping')
+					elif Tear == Wrinkled:
+						publish(client, 'TearSamping')
 				c = count2
-			elif (count2-c) > 3:
+			if (count2-c) > 0:
 				if most_common == ['Flawless']:
-					
-					if Wrinkled < 0:
+					if Wrinkled > 0:
 						publish(client, "WrinkledSamping")
-						# x =[]
-					elif Shifted < 0:
-						publish(client, "false, 2")
-						# x =[]
-					elif Tear < 0:
+					elif Tear > 0:
 						publish(client, "TearSamping")
-						# x =[]
 					else:
 						publish(client, "FlawlessSamping")
-						# x = []
 				elif most_common == ['Wrinkled']:
 					publish(client, 'WrinkledSamping')
-					print("Sent to PLC as Wrinkled")
-					# x =[]
-				elif most_common == ['Shifted']:
-					publish(client, 'false, 2')
-					print("Sent to PLC as Shifted")
-					# x =[]
 				elif most_common == ['Tear']:
 					publish(client, 'TearSamping')
-					print("Sent to PLC as Tear")
-					# x =[]
-				elif most_common == ['person']:
-					publish(client, "PersonSamping")
-					print("Sent to PLC as person")
-					# x =[]
 				c = count2
-			# if Flawless <= 5:
-					
-			# 		if Wrinkled < 0:
-			# 			publish(client, "WrinkledSamping")
-			# 			# x =[]
-			# 		elif Shifted < 0:
-			# 			publish(client, "false, 2")
-			# 			# x =[]
-			# 		elif Tear < 0:
-			# 			publish(client, "TearSamping")
-			# 			# x =[]
-			# 		else:
-			# 			publish(client, "FlawlessSamping")
-			# 			# x = []
-			# elif Wrinkled <= 5:
-			# 	publish(client, 'WrinkledSamping')
-			# 	print("Sent to PLC as Wrinkled")
-			# 	# x =[]
-			# elif Shifted <= 5:
-			# 	publish(client, 'false, 2')
-			# 	print("Sent to PLC as Shifted")
-			# 	# x =[]
-			# elif Tear <= 5:
-			# 	publish(client, 'TearSamping')
-			# 	print("Sent to PLC as Tear")
-			# 	# x =[]
-			# elif most_common == ['person']:
-			# 	publish(client, "PersonSamping")
-			# 	print("Sent to PLC as person")
-			# 	# x =[]
-
+			elif most_common == ['Wrinkled']:
+				publish(client, 'WrinkledSamping')
+			elif most_common == ['Tear']:
+				publish(client, 'TearSamping')
+			elif Flawless == Wrinkled == Tear:
+				publish(client, 'TearSamping')
+			elif Flawless > 0:
+				if Flawless == Wrinkled:
+					publish(client, 'WrinkledSamping')
+				elif Flawless == Tear:
+					publish(client, 'TearSamping')
+			elif Wrinkled > 0:
+				if Wrinkled == Tear:
+					publish(client, 'TearSamping')
+				elif Wrinkled == Flawless:
+					publish(client, 'WrinkledSamping')
+			elif Tear > 0:
+				if Tear == Flawless:
+					publish(client, 'TearSamping')
+				elif Tear == Wrinkled:
+					publish(client, 'TearSamping')
 			if data =='true':
 				c = 0
 				x = []
 				data= ''
 		cv2.putText(img, label, (20, 40), FONT_FACE, FONT_SCALE, RED, THICKNESS, cv2.LINE_AA)
-		# img = cv2.resize(img, (1280,720))
 		cv2.imshow('Output', img)	
 		if cv2.waitKey(1) & 0xFF == ord('q'):	
 			break
