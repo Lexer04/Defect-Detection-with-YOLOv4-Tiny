@@ -380,7 +380,7 @@ if __name__ == '__main__':
 	with open(classesFile, 'rt') as f:
 		classes = f.read().rstrip('\n').split('\n')
 	# Load image.
-	# camSet='nvarguscamerasrc !  video/x-raw(memory:NVMM), width=3264, height=2464, format=NV12, framerate=21/1 ! nvvidconv flip-method='+str(flip)+' ! video/x-raw, width='+str(dispW)+', height='+str(dispH)+', format=BGRx ! videoconvert ! video/x-raw, format=BGR ! appsink'
+	# camSet='nvarguscamerasrc !  video/x-raw(memory:NVMM), width=3264, height=2464, format=NV12, framerate=21/1 ! nvvidconv flip-method='+str(flip)+' ! video/x-raw, width='+str(dispW)+', height='+str(dispH)+', format=BGRx ! videoconvert ! video/x-raw, format=BGR ! drop = True ! appsink'
 	# cap = cv2.VideoCapture(camSet)
 	cap = cv2.VideoCapture(0)
 	cap.set(3,1280)
