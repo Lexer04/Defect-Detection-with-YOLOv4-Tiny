@@ -1,0 +1,6 @@
+C:/Users/yoshu/Documents/Materi Kuliah/TA/darknet-master/darknet-master/CMakeFiles/dark.dir
+C:/Users/yoshu/Documents/Materi Kuliah/TA/darknet-master/darknet-master/CMakeFiles/uselib.dir
+C:/Users/yoshu/Documents/Materi Kuliah/TA/darknet-master/darknet-master/CMakeFiles/darknet.dir
+C:/Users/yoshu/Documents/Materi Kuliah/TA/darknet-master/darknet-master/CMakeFiles/INSTALL.dir
+C:/Users/yoshu/Documents/Materi Kuliah/TA/darknet-master/darknet-master/CMakeFiles/ALL_BUILD.dir
+C:/Users/yoshu/Documents/Materi Kuliah/TA/darknet-master/darknet-master/CMakeFiles/ZERO_CHECK.dir

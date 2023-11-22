@@ -1,0 +1,10 @@
+^C:\USERS\YOSHU\DOCUMENTS\MATERI KULIAH\TA\DARKNET-MASTER\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SC:/Users/yoshu/Documents/Materi Kuliah/TA/darknet-master" "-BC:/Users/yoshu/Documents/Materi Kuliah/TA/darknet-master/darknet-master" --check-stamp-file "C:/Users/yoshu/Documents/Materi Kuliah/TA/darknet-master/darknet-master/CMakeFiles/generate.stamp"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
